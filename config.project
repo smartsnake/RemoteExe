@@ -1,0 +1,8 @@
+{
+    "run" : "python main.py",
+    "compile": "",
+    "project_folder": "World",
+    "host": "HOST",
+    "username": "USERNAME",
+    "password": "PASSWORD"
+}
