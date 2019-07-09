@@ -1,6 +1,6 @@
 {
     "run" : "python main.py",
-    "compile": "",
+    "compile": "None",
     "project_folder": "World",
     "host": "HOST",
     "username": "USERNAME",
