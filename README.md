@@ -4,10 +4,9 @@ Design project on one computer, execute on another.
 ### Prerequisites
 client:
 ```
-pip install paramiko
-pip install scp
+pip install fabric
 ```
 
 ## Built With
 
-* [paramiko](https://github.com/paramiko/paramiko) - SSH client
+* [fabric](https://github.com/fabric/fabric) - SSH connections
