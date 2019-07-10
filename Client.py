@@ -5,6 +5,7 @@ import json
 import zipfile
 import paramiko
 import fabric
+#from fabric.context_managers import cd
 from scp import SCPClient
 
 parser = argparse.ArgumentParser()
@@ -28,48 +29,54 @@ def zipdir(path, ziph):
             ziph.write(os.path.join(root, file))
 
 #Run Program on remote computer.
-def execute(ssh):
+def execute(connection):
     #Deleting Remote Config
-    cmd = 'del ' + results.config
-    if(debug):
-        print('Deleting ' + results.config)
-    ssh.exec_command(cmd)
+    # cmd = 'del ' + results.config
+    # if(debug):
+    #     print('Deleting ' + results.config)
+    # connection.run(cmd)
 
     #Unzipping Remote file
     if(debug):
             print('Unzipping ' + config['project_folder'] + '.zip')
     cmd = 'powershell Expand-Archive ' + config['project_folder'] + '.zip .'
-    ssh.exec_command(cmd)
+    connection.run(cmd, hide='err')
 
     #Deleting zip
     if(debug):
             print('Deleting ' + config['project_folder'] + '.zip')
     cmd = 'del ' + config['project_folder'] + '.zip'
-    ssh.exec_command(cmd)
+    connection.run(cmd)
 
     #Changing Dir 
     if(debug):
         print('Changing Dir: ' + config['project_folder'])
-    cmd = 'cd ' + config['project_folder']
-    ssh.exec_command(cmd)
+    #cmd = 'cd ' + config['project_folder']
+    connection.run('cd ' + config['project_folder'])
+    
 
     #Compile Program
     if(config['compile'] != None and config['compile'] != ""):
         if(debug):
             print('Compiling program...')
-        os.system(config['compile'])
+        connection.run(config['compile'])
     
     #Run Program
+    # test = connection.run('cd')
+    # print('--------------------')
+    # print(test)
+    # print('--------------------')
+
     print("Run Project: " + config['project_folder'])
-    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(config['run'])
+    result = connection.run(config['run'], hide='err')
 
     #Output
     print("Finished running.")
-    print("Results: ")
-    print(ssh_stdout.read())
+    print("Result: ")
+    print(result)
 
     #Moving up dir
-    ssh.exec_command('cd ..')
+    connection.run('cd ..')
 
 
 if(debug):
@@ -90,24 +97,28 @@ else:
     print('Project Folder is None!')
 
 #--------Sending project zip-------------
-ssh = paramiko.SSHClient()
+#ssh = paramiko.SSHClient()
 
 host = config['host']
 user = config['username']
 password = config['password']
 
-ssh.load_system_host_keys()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(host, username=user, password=password)
+connection = fabric.Connection(
+    host=host,
+    user=user,
+    connect_kwargs={
+        "password": password,
+    },
+)
 
-scp = SCPClient(ssh.get_transport(), progress = progress)
-scp.put(config['project_folder'] + '.zip')#, config['project_folder'] )
-scp.put(results.config)#, config['project_folder'] )
+connection.put(config['project_folder'] + '.zip')
+if(debug):
+    print('Project Zip file pushed to Remote.')
 
-execute(ssh)
+execute(connection)
 
-scp.close()
-ssh.close()
+# scp.close()
+# ssh.close()
 
 
 print("Successful!")
