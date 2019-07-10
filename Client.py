@@ -4,6 +4,7 @@ import sys
 import json
 import zipfile
 import paramiko
+import fabric
 from scp import SCPClient
 
 parser = argparse.ArgumentParser()
@@ -11,7 +12,6 @@ debug = True
 
 parser.add_argument('-c', action='store', dest='config',
                     help='config.project file')
-
 
 results = parser.parse_args()
 
@@ -26,6 +26,51 @@ def zipdir(path, ziph):
     for root, dirs, files in os.walk(path):
         for file in files:
             ziph.write(os.path.join(root, file))
+
+#Run Program on remote computer.
+def execute(ssh):
+    #Deleting Remote Config
+    cmd = 'del ' + results.config
+    if(debug):
+        print('Deleting ' + results.config)
+    ssh.exec_command(cmd)
+
+    #Unzipping Remote file
+    if(debug):
+            print('Unzipping ' + config['project_folder'] + '.zip')
+    cmd = 'powershell Expand-Archive ' + config['project_folder'] + '.zip .'
+    ssh.exec_command(cmd)
+
+    #Deleting zip
+    if(debug):
+            print('Deleting ' + config['project_folder'] + '.zip')
+    cmd = 'del ' + config['project_folder'] + '.zip'
+    ssh.exec_command(cmd)
+
+    #Changing Dir 
+    if(debug):
+        print('Changing Dir: ' + config['project_folder'])
+    cmd = 'cd ' + config['project_folder']
+    ssh.exec_command(cmd)
+
+    #Compile Program
+    if(config['compile'] != None and config['compile'] != ""):
+        if(debug):
+            print('Compiling program...')
+        os.system(config['compile'])
+    
+    #Run Program
+    print("Run Project: " + config['project_folder'])
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(config['run'])
+
+    #Output
+    print("Finished running.")
+    print("Results: ")
+    print(ssh_stdout.read())
+
+    #Moving up dir
+    ssh.exec_command('cd ..')
+
 
 if(debug):
     print('-c: ', results.config)
@@ -46,20 +91,21 @@ else:
 
 #--------Sending project zip-------------
 ssh = paramiko.SSHClient()
+
 host = config['host']
 user = config['username']
 password = config['password']
 
-cmd_to_execute = 'mkdir ' + config['project_folder']
-
 ssh.load_system_host_keys()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(host, username=user, password=password)
-ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(cmd_to_execute)
 
 scp = SCPClient(ssh.get_transport(), progress = progress)
-scp.put(config['project_folder'] + '.zip', config['project_folder'] )
-scp.put(results.config, config['project_folder'] )
+scp.put(config['project_folder'] + '.zip')#, config['project_folder'] )
+scp.put(results.config)#, config['project_folder'] )
+
+execute(ssh)
+
 scp.close()
 ssh.close()
 
