@@ -5,11 +5,10 @@ import json
 import zipfile
 import paramiko
 import fabric
-#from fabric.context_managers import cd
 from scp import SCPClient
 
 parser = argparse.ArgumentParser()
-debug = True
+debug = False
 
 parser.add_argument('-c', action='store', dest='config',
                     help='config.project file')
@@ -30,16 +29,10 @@ def zipdir(path, ziph):
 
 #Run Program on remote computer.
 def execute(connection):
-    #Deleting Remote Config
-    # cmd = 'del ' + results.config
-    # if(debug):
-    #     print('Deleting ' + results.config)
-    # connection.run(cmd)
-
     #Unzipping Remote file
     if(debug):
             print('Unzipping ' + config['project_folder'] + '.zip')
-    cmd = 'powershell Expand-Archive ' + config['project_folder'] + '.zip .'
+    cmd = 'powershell Expand-Archive ' + config['project_folder'] + '.zip . -Force'
     connection.run(cmd, hide='err')
 
     #Deleting zip
@@ -48,13 +41,6 @@ def execute(connection):
     cmd = 'del ' + config['project_folder'] + '.zip'
     connection.run(cmd)
 
-    #Changing Dir 
-    if(debug):
-        print('Changing Dir: ' + config['project_folder'])
-    #cmd = 'cd ' + config['project_folder']
-    connection.run('cd ' + config['project_folder'])
-    
-
     #Compile Program
     if(config['compile'] != None and config['compile'] != ""):
         if(debug):
@@ -62,21 +48,8 @@ def execute(connection):
         connection.run(config['compile'])
     
     #Run Program
-    # test = connection.run('cd')
-    # print('--------------------')
-    # print(test)
-    # print('--------------------')
-
     print("Run Project: " + config['project_folder'])
     result = connection.run(config['run'], hide='err')
-
-    #Output
-    print("Finished running.")
-    print("Result: ")
-    print(result)
-
-    #Moving up dir
-    connection.run('cd ..')
 
 
 if(debug):
@@ -97,8 +70,6 @@ else:
     print('Project Folder is None!')
 
 #--------Sending project zip-------------
-#ssh = paramiko.SSHClient()
-
 host = config['host']
 user = config['username']
 password = config['password']
@@ -117,8 +88,7 @@ if(debug):
 
 execute(connection)
 
-# scp.close()
-# ssh.close()
+connection.close()
 
 
 print("Successful!")
